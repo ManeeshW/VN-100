@@ -1,6 +1,7 @@
 #include "vn100.h"
 #include <stdexcept>
 #include <iostream>
+#include <algorithm> 
 
 vn100::vn100() : is_open(false), ez(nullptr), data_available(false), frequency(200)
 {
