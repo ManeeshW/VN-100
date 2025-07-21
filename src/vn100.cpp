@@ -1,9 +1,9 @@
 #include "vn100.h"
 #include <stdexcept>
 #include <iostream>
-#include <algorithm> 
+#include <algorithm>
 
-vn100::vn100() : is_open(false), ez(nullptr), data_available(false), frequency(200)
+vn100::vn100() : frequency(200), is_open(false), ez(nullptr), data_available(false)
 {
 }
 
@@ -95,14 +95,62 @@ void vn100::read(std::string port, int baud_rate)
     try
     {
         vs.connect(port, baud_rate);
-        vs.writeAsyncDataOutputFrequency(frequency); // Use frequency from config
+        string mn = vs.readModelNumber();
+        cout << "Model Number: " << mn << endl;
+
+        cout << "Setting up binary output register .." << endl;
+        // Disable ASCII output
+        vs.writeAsyncDataOutputType(VNOFF);
+
+        // Default port number to 2
+        int port_number = 2;
+
+        if (port_number == 1)
+        {
+            BinaryOutputRegister bor(
+                ASYNCMODE_PORT1, // Output to port 1
+                static_cast<uint16_t>(800 / frequency), // Rate divisor (800 Hz / desired frequency)
+                COMMONGROUP_YAWPITCHROLL | COMMONGROUP_ANGULARRATE | COMMONGROUP_ACCEL | COMMONGROUP_QUATERNION, // Data fields
+                TIMEGROUP_NONE,  // No time group data
+                IMUGROUP_NONE,   // No IMU group data
+                GPSGROUP_NONE,   // No GPS group data
+                ATTITUDEGROUP_NONE, // No attitude group data
+                INSGROUP_NONE,   // No INS group data
+                GPSGROUP_NONE    // No GPS2 group data
+            );
+            vs.writeBinaryOutput1(bor); // Configure Binary Output Register 1
+        }
+        else if (port_number == 2)
+        {
+            BinaryOutputRegister bor(
+                ASYNCMODE_PORT2, // Output to port 2
+                static_cast<uint16_t>(800 / frequency), // Rate divisor (800 Hz / desired frequency)
+                COMMONGROUP_YAWPITCHROLL | COMMONGROUP_ANGULARRATE| COMMONGROUP_ACCEL | COMMONGROUP_QUATERNION, // Data fields
+                TIMEGROUP_NONE,  // No time group data
+                IMUGROUP_NONE,   // No IMU group data
+                GPSGROUP_NONE,   // No GPS group data
+                ATTITUDEGROUP_LINEARACCELBODY, // Linear acceleration in body frame
+                INSGROUP_NONE,   // No INS group data
+                GPSGROUP_NONE    // No GPS2 group data
+            );
+            vs.writeBinaryOutput2(bor); // Configure Binary Output Register 2
+        }
+        else
+        {
+            std::cout << "Error: port number is incorrectly set at " << port_number << std::endl;
+            throw std::runtime_error("Invalid port number: " + std::to_string(port_number));
+        }
+
+        // Ensure the binary output frequency is set
+        vs.writeAsyncDataOutputFrequency(frequency);
+
         ez = EzAsyncData::connect(port, baud_rate);
         is_open = true;
     }
     catch (const vn::not_found& e)
     {
-        throw std::runtime_error("Failed to connect to VN100 sensor at " + port + 
-                                 " with baud rate " + std::to_string(baud_rate) + 
+        throw std::runtime_error("Failed to connect to VN100 sensor at " + port +
+                                 " with baud rate " + std::to_string(baud_rate) +
                                  ": " + e.what());
     }
     catch (const std::exception& e)
@@ -120,11 +168,10 @@ void vn100::loop()
     {
         CompositeData data = ez->getNextData();
         if (data.hasYawPitchRoll() && data.hasAngularRate() && 
-            data.hasQuaternion() && data.hasAcceleration())
+            data.hasAcceleration())
         {
             latest_ypr = data.yawPitchRoll();
             latest_ang_rate = data.angularRate();
-            latest_quat = data.quaternion();
             latest_accel = data.acceleration();
             data_available = true;
         }

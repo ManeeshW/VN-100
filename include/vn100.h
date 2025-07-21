@@ -8,9 +8,13 @@
 #include <vn/compositedata.h>
 #include <vn/ezasyncdata.h>
 #include <vn/thread.h>
+#include <iostream>
 
 using namespace vn::math;
 using namespace vn::sensors;
+using namespace vn::protocol::uart;
+using namespace vn::xplat;
+using namespace std;
 
 class vn100
 {
