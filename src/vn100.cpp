@@ -129,7 +129,7 @@ void vn100::read(std::string port, int baud_rate)
                 TIMEGROUP_NONE,  // No time group data
                 IMUGROUP_NONE,   // No IMU group data
                 GPSGROUP_NONE,   // No GPS group data
-                ATTITUDEGROUP_LINEARACCELBODY, // Linear acceleration in body frame
+                ATTITUDEGROUP_NONE, // Linear acceleration in body frame
                 INSGROUP_NONE,   // No INS group data
                 GPSGROUP_NONE    // No GPS2 group data
             );
